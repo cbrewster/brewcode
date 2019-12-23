@@ -1,7 +1,6 @@
 // TODO List
 // * Do better text layout and more easily track metrics?
 // * Support mouse clicking
-// * Support scrolling as cursor moves in the buffer
 // * Text selection
 
 mod buffer;
