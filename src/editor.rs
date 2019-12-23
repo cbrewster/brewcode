@@ -6,13 +6,22 @@ use winit::{dpi::PhysicalSize, event::KeyboardInput};
 pub struct Editor {
     buffers: Vec<Buffer>,
     active_buffer: usize,
+    size: PhysicalSize,
 }
 
 impl Editor {
-    pub fn new() -> Editor {
+    pub fn new(size: PhysicalSize) -> Editor {
         Editor {
-            buffers: vec![Buffer::new()],
+            buffers: vec![Buffer::new(size)],
             active_buffer: 0,
+            size,
+        }
+    }
+
+    pub fn update_size(&mut self, size: PhysicalSize) {
+        self.size = size;
+        for buffer in &mut self.buffers {
+            buffer.update_size(size);
         }
     }
 

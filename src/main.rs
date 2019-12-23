@@ -64,7 +64,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     window.request_redraw();
     window.set_cursor_icon(CursorIcon::Text);
 
-    let mut editor = Editor::new();
+    let mut editor = Editor::new(size);
     let mut last_frame = std::time::Instant::now();
     event_loop.run(move |event, _, control_flow| match event {
         Event::WindowEvent {
@@ -123,6 +123,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             ..
         } => {
             size = new_size.to_physical(window.hidpi_factor());
+            editor.update_size(size);
 
             swap_chain = device.create_swap_chain(
                 &surface,

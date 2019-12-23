@@ -5,6 +5,8 @@ use winit::{
     event::{ElementState, KeyboardInput, VirtualKeyCode},
 };
 
+const SCALE: f32 = 40.0;
+
 struct Cursor {
     row: usize,
     col: usize,
@@ -15,10 +17,11 @@ pub struct Buffer {
     lines: Vec<String>,
     scroll: f32,
     cursor: Cursor,
+    size: PhysicalSize,
 }
 
 impl Buffer {
-    pub fn new() -> Buffer {
+    pub fn new(size: PhysicalSize) -> Buffer {
         let file = include_str!("main.rs");
         Buffer {
             scroll: 0.0,
@@ -28,6 +31,22 @@ impl Buffer {
                 col: 0,
                 col_affinity: 0,
             },
+            size,
+        }
+    }
+
+    pub fn update_size(&mut self, size: PhysicalSize) {
+        self.size = size;
+    }
+
+    fn ensure_cursor_in_view(&mut self) {
+        let cursor_y = self.cursor.row as f32 * SCALE;
+        let bottom = self.scroll + self.size.height as f32;
+
+        if cursor_y < self.scroll {
+            self.scroll = cursor_y;
+        } else if cursor_y + SCALE > bottom {
+            self.scroll = cursor_y - self.size.height as f32 + SCALE + 5.0;
         }
     }
 
@@ -36,7 +55,7 @@ impl Buffer {
             0.0
         } else {
             // TODO: Find better way to calculate max scroll based on line count
-            ((self.lines.len() - 1) as f32 * 40.0) + 5.0
+            ((self.lines.len() - 1) as f32 * SCALE) + 5.0
         };
 
         self.scroll = (self.scroll + delta).max(0.0).min(max_scroll);
@@ -63,6 +82,7 @@ impl Buffer {
             self.cursor.col += 1;
         }
         self.cursor.col_affinity = self.cursor.col;
+        self.ensure_cursor_in_view();
     }
 
     pub fn handle_keyboard_input(&mut self, input: KeyboardInput) {
@@ -110,6 +130,7 @@ impl Buffer {
             }
             _ => {}
         }
+        self.ensure_cursor_in_view();
     }
 
     pub fn draw(
@@ -120,12 +141,21 @@ impl Buffer {
     ) {
         let x_pad = 10.0;
         let digit_count = self.lines.len().to_string().chars().count();
-        let gutter_offset = x_pad + 30.0 + digit_count as f32 * 20.0;
+        let gutter_offset = x_pad + 30.0 + digit_count as f32 * (SCALE / 2.0);
         let mut y = 5.0 - self.scroll;
 
+        // gutter color
+        rect_brush.queue_rectangle(
+            0,
+            0,
+            (digit_count as f32 * (SCALE / 2.0) + x_pad * 2.0) as i32,
+            size.height as i32,
+            [0.06, 0.06, 0.06, 1.0],
+        );
+
         for (index, line) in self.lines.iter().enumerate() {
-            if y < -40.0 {
-                y += 40.0;
+            if y < -SCALE {
+                y += SCALE;
                 continue;
             }
             if y > size.height as f32 {
@@ -135,7 +165,7 @@ impl Buffer {
             if index == self.cursor.row {
                 let mut layout = glyph_brush.fonts().first().unwrap().layout(
                     line,
-                    Scale::uniform(40.0),
+                    Scale::uniform(SCALE),
                     Point { x: 0.0, y: 0.0 },
                 );
                 let mut x_pos = 0.0;
@@ -150,11 +180,17 @@ impl Buffer {
                     0,
                     y as i32,
                     size.width as i32,
-                    40,
-                    [0.05, 0.05, 0.05, 1.0],
+                    SCALE as i32,
+                    [1.0, 1.0, 1.0, 0.05],
                 );
 
-                rect_brush.queue_rectangle(cursor_x as i32, y as i32, 4, 40, [1.0, 1.0, 1.0, 1.0]);
+                rect_brush.queue_rectangle(
+                    cursor_x as i32,
+                    y as i32,
+                    4,
+                    SCALE as i32,
+                    [1.0, 1.0, 1.0, 1.0],
+                );
             }
 
             let line_number = index + 1;
@@ -164,7 +200,7 @@ impl Buffer {
                 text: vec![SectionText {
                     text: &line_number.to_string(),
                     // TODO: Don't hardcode scale
-                    scale: Scale::uniform(40.0),
+                    scale: Scale::uniform(SCALE),
                     color: [0.4, 0.4, 0.4, 1.0],
                     ..SectionText::default()
                 }],
@@ -175,23 +211,14 @@ impl Buffer {
                 screen_position: (gutter_offset, y),
                 text: vec![SectionText {
                     text: line,
-                    scale: Scale::uniform(40.0),
+                    scale: Scale::uniform(SCALE),
                     color: [0.7, 0.7, 0.7, 1.0],
                     ..SectionText::default()
                 }],
                 ..VariedSection::default()
             });
 
-            y += 40.0;
+            y += SCALE;
         }
-
-        // gutter color
-        rect_brush.queue_rectangle(
-            0,
-            0,
-            (digit_count as f32 * 20.0 + x_pad * 2.0) as i32,
-            size.height as i32,
-            [0.06, 0.06, 0.06, 1.0],
-        );
     }
 }
