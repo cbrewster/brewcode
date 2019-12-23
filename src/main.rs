@@ -1,17 +1,23 @@
+// TODO
+// * Do layout before sending to wgpu_glyph so we know glyph positions
+// * Add pipeline for drawing rectangles
+
 use wgpu_glyph::{GlyphBrush, GlyphBrushBuilder, Scale, SectionText, VariedSection};
 use winit::{
-    event::{Event, KeyboardInput, ModifiersState, VirtualKeyCode, WindowEvent},
+    event::{Event, KeyboardInput, ModifiersState, MouseScrollDelta, VirtualKeyCode, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
     window::WindowBuilder,
 };
 
 struct Buffer {
     lines: Vec<String>,
+    scroll: f32,
 }
 
 impl Buffer {
     fn new() -> Buffer {
         Buffer {
+            scroll: 0.0,
             lines: vec![
                 "Oh how".into(),
                 "the turn tables".into(),
@@ -37,11 +43,22 @@ impl Buffer {
         }
     }
 
+    fn scroll(&mut self, delta: f32) {
+        let max_scroll = if self.lines.is_empty() {
+            0.0
+        } else {
+            // TODO: Find better way to calculate max scroll based on line count
+            (self.lines.len() - 1) as f32 * 40.0
+        };
+
+        self.scroll = (self.scroll + delta).max(0.0).min(max_scroll);
+    }
+
     fn draw(&self, glyph_brush: &mut GlyphBrush<()>) {
         let x = 10.0;
         let digit_count = self.lines.len().to_string().chars().count();
         let gutter_offset = 20.0 + digit_count as f32 * 20.0;
-        let mut y = 10.0;
+        let mut y = 5.0 - self.scroll;
 
         for (index, line) in self.lines.iter().enumerate() {
             let line_number = index + 1;
@@ -50,8 +67,9 @@ impl Buffer {
                 screen_position: (x, y),
                 text: vec![SectionText {
                     text: &line_number.to_string(),
+                    // TODO: Don't hardcode scale
                     scale: Scale::uniform(40.0),
-                    color: [0.2, 0.2, 0.2, 1.0],
+                    color: [0.4, 0.4, 0.4, 1.0],
                     ..SectionText::default()
                 }],
                 ..VariedSection::default()
@@ -62,6 +80,7 @@ impl Buffer {
                 text: vec![SectionText {
                     text: line,
                     scale: Scale::uniform(40.0),
+                    color: [0.7, 0.7, 0.7, 1.0],
                     ..SectionText::default()
                 }],
                 ..VariedSection::default()
@@ -87,6 +106,10 @@ impl Editor {
 
     fn draw(&self, glyph_brush: &mut GlyphBrush<()>) {
         self.buffers[self.active_buffer].draw(glyph_brush);
+    }
+
+    fn scroll(&mut self, delta: f32) {
+        self.buffers[self.active_buffer].scroll(delta);
     }
 }
 
@@ -133,7 +156,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     window.request_redraw();
 
-    let editor = Editor::new();
+    let mut editor = Editor::new();
 
     event_loop.run(move |event, _, control_flow| match event {
         Event::WindowEvent {
@@ -154,6 +177,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 },
             ..
         } => *control_flow = ControlFlow::Exit,
+
+        Event::WindowEvent {
+            event:
+                WindowEvent::MouseWheel {
+                    delta: MouseScrollDelta::PixelDelta(delta),
+                    ..
+                },
+            ..
+        } => {
+            // Fix scroll direction
+            // TODO: query user preferences
+            editor.scroll(-delta.y as f32);
+            window.request_redraw();
+        }
 
         Event::WindowEvent {
             event: WindowEvent::Resized(new_size),
@@ -191,9 +228,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     load_op: wgpu::LoadOp::Clear,
                     store_op: wgpu::StoreOp::Store,
                     clear_color: wgpu::Color {
-                        r: 1.0,
-                        g: 1.0,
-                        b: 1.0,
+                        r: 0.03,
+                        g: 0.03,
+                        b: 0.03,
                         a: 1.0,
                     },
                 }],
