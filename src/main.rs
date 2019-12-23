@@ -83,6 +83,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         } => *control_flow = ControlFlow::Exit,
 
         Event::WindowEvent {
+            event: WindowEvent::KeyboardInput { input, .. },
+            ..
+        } => {
+            editor.handle_keyboard_input(input);
+            // TODO: Only redraw is something has changed
+            window.request_redraw();
+        }
+
+        Event::WindowEvent {
             event:
                 WindowEvent::MouseWheel {
                     delta: MouseScrollDelta::PixelDelta(delta),

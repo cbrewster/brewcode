@@ -1,7 +1,7 @@
 use crate::buffer::Buffer;
 use crate::rectangle_brush::RectangleBrush;
 use wgpu_glyph::GlyphBrush;
-use winit::dpi::PhysicalSize;
+use winit::{dpi::PhysicalSize, event::KeyboardInput};
 
 pub struct Editor {
     buffers: Vec<Buffer>,
@@ -14,6 +14,10 @@ impl Editor {
             buffers: vec![Buffer::new()],
             active_buffer: 0,
         }
+    }
+
+    pub fn handle_keyboard_input(&mut self, input: KeyboardInput) {
+        self.buffers[self.active_buffer].handle_keyboard_input(input);
     }
 
     pub fn draw(

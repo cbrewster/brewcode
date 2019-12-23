@@ -1,10 +1,20 @@
 use crate::rectangle_brush::RectangleBrush;
-use wgpu_glyph::{GlyphBrush, Scale, SectionText, VariedSection};
-use winit::dpi::PhysicalSize;
+use wgpu_glyph::{GlyphBrush, Point, Scale, SectionText, VariedSection};
+use winit::{
+    dpi::PhysicalSize,
+    event::{ElementState, KeyboardInput, VirtualKeyCode},
+};
+
+struct Cursor {
+    row: usize,
+    col: usize,
+    col_affinity: usize,
+}
 
 pub struct Buffer {
     lines: Vec<String>,
     scroll: f32,
+    cursor: Cursor,
 }
 
 impl Buffer {
@@ -13,6 +23,11 @@ impl Buffer {
         Buffer {
             scroll: 0.0,
             lines: file.lines().map(|line| line.to_owned()).collect(),
+            cursor: Cursor {
+                row: 0,
+                col: 0,
+                col_affinity: 0,
+            },
         }
     }
 
@@ -27,19 +42,63 @@ impl Buffer {
         self.scroll = (self.scroll + delta).max(0.0).min(max_scroll);
     }
 
+    pub fn handle_keyboard_input(&mut self, input: KeyboardInput) {
+        let keycode = match input.virtual_keycode {
+            Some(keycode) => keycode,
+            None => return,
+        };
+
+        if input.state == ElementState::Released {
+            return;
+        }
+
+        match keycode {
+            VirtualKeyCode::Up => {
+                self.cursor.row = (self.cursor.row as isize - 1)
+                    .max(0)
+                    .min(self.lines.len() as isize) as usize;
+                self.cursor.col = self.lines[self.cursor.row]
+                    .len()
+                    .min(self.cursor.col_affinity);
+            }
+            VirtualKeyCode::Down => {
+                self.cursor.row = (self.cursor.row as isize + 1)
+                    .max(0)
+                    .min(self.lines.len() as isize) as usize;
+                self.cursor.col = self.lines[self.cursor.row]
+                    .len()
+                    .min(self.cursor.col_affinity);
+            }
+            VirtualKeyCode::Left => {
+                self.cursor.col = (self.cursor.col as isize - 1)
+                    .max(0)
+                    .min(self.lines[self.cursor.row].len() as isize)
+                    as usize;
+                self.cursor.col_affinity = self.cursor.col;
+            }
+            VirtualKeyCode::Right => {
+                self.cursor.col = (self.cursor.col as isize + 1)
+                    .max(0)
+                    .min(self.lines[self.cursor.row].len() as isize)
+                    as usize;
+                self.cursor.col_affinity = self.cursor.col;
+
+                self.cursor.col_affinity = self.cursor.col;
+            }
+            _ => {}
+        }
+    }
+
     pub fn draw(
         &self,
         size: PhysicalSize,
         glyph_brush: &mut GlyphBrush<()>,
         rect_brush: &mut RectangleBrush,
     ) {
-        let x = 10.0;
+        let x_pad = 10.0;
         let digit_count = self.lines.len().to_string().chars().count();
-        let gutter_offset = 20.0 + digit_count as f32 * 20.0;
+        let gutter_offset = x_pad + 30.0 + digit_count as f32 * 20.0;
         let mut y = 5.0 - self.scroll;
-
-        let active_line = 40;
-        let cursor = 10;
 
         for (index, line) in self.lines.iter().enumerate() {
             if y < -40.0 {
@@ -50,7 +109,19 @@ impl Buffer {
                 break;
             }
 
-            if index == active_line {
+            if index == self.cursor.row {
+                let mut layout = glyph_brush.fonts().first().unwrap().layout(
+                    line,
+                    Scale::uniform(40.0),
+                    Point { x: 0.0, y: 0.0 },
+                );
+                let mut x_pos = 0.0;
+                for _ in 0..self.cursor.col {
+                    let positioned_glyph = layout.next().unwrap();
+                    x_pos += positioned_glyph.unpositioned().h_metrics().advance_width;
+                }
+
+                let cursor_x = gutter_offset + x_pos;
                 // active line
                 rect_brush.queue_rectangle(
                     0,
@@ -60,13 +131,13 @@ impl Buffer {
                     [0.05, 0.05, 0.05, 1.0],
                 );
 
-                rect_brush.queue_rectangle(40 * cursor, y as i32, 4, 40, [1.0, 1.0, 1.0, 1.0]);
+                rect_brush.queue_rectangle(cursor_x as i32, y as i32, 4, 40, [1.0, 1.0, 1.0, 1.0]);
             }
 
             let line_number = index + 1;
 
             glyph_brush.queue(VariedSection {
-                screen_position: (x, y),
+                screen_position: (x_pad, y),
                 text: vec![SectionText {
                     text: &line_number.to_string(),
                     // TODO: Don't hardcode scale
@@ -78,7 +149,7 @@ impl Buffer {
             });
 
             glyph_brush.queue(VariedSection {
-                screen_position: (x + gutter_offset, y),
+                screen_position: (gutter_offset, y),
                 text: vec![SectionText {
                     text: line,
                     scale: Scale::uniform(40.0),
@@ -95,7 +166,7 @@ impl Buffer {
         rect_brush.queue_rectangle(
             0,
             0,
-            (gutter_offset - 5.0) as i32,
+            (digit_count as f32 * 20.0 + x_pad * 2.0) as i32,
             size.height as i32,
             [0.06, 0.06, 0.06, 1.0],
         );
