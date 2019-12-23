@@ -1,9 +1,76 @@
-use wgpu_glyph::{GlyphBrushBuilder, Scale, SectionText, VariedSection};
+use wgpu_glyph::{GlyphBrush, GlyphBrushBuilder, Scale, SectionText, VariedSection};
 use winit::{
     event::{Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
     window::WindowBuilder,
 };
+
+struct Editor {
+    lines: Vec<String>,
+}
+
+impl Editor {
+    fn new() -> Editor {
+        Editor {
+            lines: vec![
+                "Oh how".into(),
+                "the turn tables".into(),
+                "have turned".into(),
+                "...".into(),
+                "".into(),
+                "Oh how".into(),
+                "the turn tables".into(),
+                "have turned".into(),
+                "...".into(),
+                "".into(),
+                "Oh how".into(),
+                "the turn tables".into(),
+                "have turned".into(),
+                "...".into(),
+                "".into(),
+                "Oh how".into(),
+                "the turn tables".into(),
+                "have turned".into(),
+                "...".into(),
+                "".into(),
+            ],
+        }
+    }
+
+    fn draw(&self, glyph_brush: &mut GlyphBrush<()>) {
+        let x = 10.0;
+        let digit_count = self.lines.len().to_string().chars().count();
+        let gutter_offset = 20.0 + digit_count as f32 * 20.0;
+        let mut y = 10.0;
+
+        for (index, line) in self.lines.iter().enumerate() {
+            let line_number = index + 1;
+
+            glyph_brush.queue(VariedSection {
+                screen_position: (x, y),
+                text: vec![SectionText {
+                    text: &line_number.to_string(),
+                    scale: Scale::uniform(40.0),
+                    color: [0.2, 0.2, 0.2, 1.0],
+                    ..SectionText::default()
+                }],
+                ..VariedSection::default()
+            });
+
+            glyph_brush.queue(VariedSection {
+                screen_position: (x + gutter_offset, y),
+                text: vec![SectionText {
+                    text: line,
+                    scale: Scale::uniform(40.0),
+                    ..SectionText::default()
+                }],
+                ..VariedSection::default()
+            });
+
+            y += 40.0;
+        }
+    }
+}
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let event_loop = EventLoop::new();
@@ -47,6 +114,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         GlyphBrushBuilder::using_font_bytes(inconsolata).build(&mut device, render_format);
 
     window.request_redraw();
+
+    let editor = Editor::new();
 
     event_loop.run(move |event, _, control_flow| match event {
         Event::WindowEvent {
@@ -99,23 +168,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 depth_stencil_attachment: None,
             });
 
-            glyph_brush.queue(VariedSection {
-                screen_position: (10.0, 10.0),
-                text: vec![
-                    SectionText {
-                        text: "Hello ",
-                        scale: Scale::uniform(40.0),
-                        ..SectionText::default()
-                    },
-                    SectionText {
-                        text: "world!",
-                        color: [1.0, 0.0, 0.0, 1.0],
-                        scale: Scale::uniform(40.0),
-                        ..SectionText::default()
-                    },
-                ],
-                ..VariedSection::default()
-            });
+            editor.draw(&mut glyph_brush);
 
             glyph_brush
                 .draw_queued(
