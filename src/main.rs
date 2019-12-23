@@ -5,13 +5,13 @@ use winit::{
     window::WindowBuilder,
 };
 
-struct Editor {
+struct Buffer {
     lines: Vec<String>,
 }
 
-impl Editor {
-    fn new() -> Editor {
-        Editor {
+impl Buffer {
+    fn new() -> Buffer {
+        Buffer {
             lines: vec![
                 "Oh how".into(),
                 "the turn tables".into(),
@@ -69,6 +69,24 @@ impl Editor {
 
             y += 40.0;
         }
+    }
+}
+
+struct Editor {
+    buffers: Vec<Buffer>,
+    active_buffer: usize,
+}
+
+impl Editor {
+    fn new() -> Editor {
+        Editor {
+            buffers: vec![Buffer::new()],
+            active_buffer: 0,
+        }
+    }
+
+    fn draw(&self, glyph_brush: &mut GlyphBrush<()>) {
+        self.buffers[self.active_buffer].draw(glyph_brush);
     }
 }
 
