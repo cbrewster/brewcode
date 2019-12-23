@@ -10,3 +10,4 @@ edition = "2018"
 wgpu = "0.4.0"
 wgpu_glyph = "0.6.0"
 winit = "0.20.0-alpha5" # TODO: Update once out of alpha
+zerocopy = "0.2.8"
