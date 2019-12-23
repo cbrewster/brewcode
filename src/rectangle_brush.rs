@@ -1,3 +1,5 @@
+const DEFAULT_MAX_RECTS: usize = 100;
+
 #[derive(Debug, Clone, Copy)]
 struct RectInstance {
     left_top: [f32; 2],
@@ -11,6 +13,7 @@ pub struct RectangleBrush {
     instance_buffer: wgpu::Buffer,
     transform_buffer: wgpu::Buffer,
     instance_queue: Vec<RectInstance>,
+    rect_capacity: usize,
     current_transform: [f32; 16],
 }
 
@@ -47,8 +50,7 @@ impl RectangleBrush {
             .fill_from_slice(&IDENTITY_MATRIX);
 
         let instance_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            // TODO: Don't hardcode max of 10 rects
-            size: std::mem::size_of::<RectInstance>() as u64 * 10,
+            size: (std::mem::size_of::<RectInstance>() * DEFAULT_MAX_RECTS) as u64,
             usage: wgpu::BufferUsage::VERTEX | wgpu::BufferUsage::COPY_DST,
         });
 
@@ -134,6 +136,7 @@ impl RectangleBrush {
             instance_buffer,
             current_transform: IDENTITY_MATRIX,
             instance_queue: vec![],
+            rect_capacity: DEFAULT_MAX_RECTS,
         }
     }
 
@@ -157,11 +160,17 @@ impl RectangleBrush {
             return;
         }
 
-        assert!(
-            self.instance_queue.len() <= 10,
-            "Cannot draw more than 10 rects"
-        );
         let instance_count = self.instance_queue.len();
+
+        // If we have more rectangles than the instance buffer can fit, resize instance buffer.
+        if instance_count > self.rect_capacity {
+            self.instance_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+                size: (std::mem::size_of::<RectInstance>() * instance_count) as u64,
+                usage: wgpu::BufferUsage::VERTEX | wgpu::BufferUsage::COPY_DST,
+            });
+
+            self.rect_capacity = instance_count;
+        }
 
         let temp_buffer = device
             .create_buffer_mapped(instance_count, wgpu::BufferUsage::COPY_SRC)
