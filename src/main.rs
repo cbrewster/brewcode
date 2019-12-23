@@ -2,8 +2,6 @@
 // * Do layout before sending to wgpu_glyph so we know glyph positions
 // * Add pipeline for drawing rectangles
 
-use zerocopy::AsBytes as _;
-
 use wgpu_glyph::{GlyphBrush, GlyphBrushBuilder, Scale, Section, SectionText, VariedSection};
 use winit::{
     dpi::PhysicalSize,
