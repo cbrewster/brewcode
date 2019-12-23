@@ -42,6 +42,29 @@ impl Buffer {
         self.scroll = (self.scroll + delta).max(0.0).min(max_scroll);
     }
 
+    pub fn handle_char_input(&mut self, input: char) {
+        if input == '\n' || input == '\r' {
+            let new_line = self.lines[self.cursor.row].split_off(self.cursor.col);
+            self.cursor.row += 1;
+            self.lines.insert(self.cursor.row, new_line);
+            self.cursor.col = 0;
+        } else if input == 127 as char {
+            if self.cursor.col > 0 {
+                self.lines[self.cursor.row].remove(self.cursor.col - 1);
+                self.cursor.col -= 1;
+            } else if self.cursor.row > 0 {
+                let remaining = self.lines.remove(self.cursor.row);
+                self.cursor.row -= 1;
+                self.cursor.col = self.lines[self.cursor.row].len();
+                self.lines[self.cursor.row].push_str(&remaining);
+            }
+        } else {
+            self.lines[self.cursor.row].insert(self.cursor.col, input);
+            self.cursor.col += 1;
+        }
+        self.cursor.col_affinity = self.cursor.col;
+    }
+
     pub fn handle_keyboard_input(&mut self, input: KeyboardInput) {
         let keycode = match input.virtual_keycode {
             Some(keycode) => keycode,
@@ -64,7 +87,7 @@ impl Buffer {
             VirtualKeyCode::Down => {
                 self.cursor.row = (self.cursor.row as isize + 1)
                     .max(0)
-                    .min(self.lines.len() as isize) as usize;
+                    .min(self.lines.len() as isize - 1) as usize;
                 self.cursor.col = self.lines[self.cursor.row]
                     .len()
                     .min(self.cursor.col_affinity);

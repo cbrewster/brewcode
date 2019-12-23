@@ -16,6 +16,10 @@ impl Editor {
         }
     }
 
+    pub fn handle_char_input(&mut self, input: char) {
+        self.buffers[self.active_buffer].handle_char_input(input);
+    }
+
     pub fn handle_keyboard_input(&mut self, input: KeyboardInput) {
         self.buffers[self.active_buffer].handle_keyboard_input(input);
     }
