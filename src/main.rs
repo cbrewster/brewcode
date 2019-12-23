@@ -1,6 +1,6 @@
 use wgpu_glyph::{GlyphBrush, GlyphBrushBuilder, Scale, SectionText, VariedSection};
 use winit::{
-    event::{Event, WindowEvent},
+    event::{Event, KeyboardInput, ModifiersState, VirtualKeyCode, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
     window::WindowBuilder,
 };
@@ -120,6 +120,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     event_loop.run(move |event, _, control_flow| match event {
         Event::WindowEvent {
             event: WindowEvent::CloseRequested,
+            ..
+        } => *control_flow = ControlFlow::Exit,
+
+        Event::WindowEvent {
+            event:
+                WindowEvent::KeyboardInput {
+                    input:
+                        KeyboardInput {
+                            virtual_keycode: Some(VirtualKeyCode::Q),
+                            modifiers: ModifiersState { logo: true, .. },
+                            ..
+                        },
+                    ..
+                },
             ..
         } => *control_flow = ControlFlow::Exit,
 
