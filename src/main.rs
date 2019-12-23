@@ -1,5 +1,8 @@
-// TODO
-// * Do layout before sending to wgpu_glyph so we know glyph positions
+// TODO List
+// * Do better text layout and more easily track metrics?
+// * Support mouse clicking
+// * Support scrolling as cursor moves in the buffer
+// * Text selection
 
 mod buffer;
 mod editor;
@@ -12,7 +15,7 @@ use wgpu_glyph::{GlyphBrushBuilder, Scale, Section};
 use winit::{
     event::{Event, KeyboardInput, ModifiersState, MouseScrollDelta, VirtualKeyCode, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
-    window::WindowBuilder,
+    window::{CursorIcon, WindowBuilder},
 };
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -59,6 +62,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut rectangle_brush = RectangleBrush::new(&device, render_format);
 
     window.request_redraw();
+    window.set_cursor_icon(CursorIcon::Text);
 
     let mut editor = Editor::new();
     let mut last_frame = std::time::Instant::now();
