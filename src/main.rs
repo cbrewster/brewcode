@@ -1,4 +1,4 @@
-use wgpu_glyph::{GlyphBrushBuilder, Scale, Section};
+use wgpu_glyph::{GlyphBrushBuilder, Scale, SectionText, VariedSection};
 use winit::{
     event::{Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
@@ -99,13 +99,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 depth_stencil_attachment: None,
             });
 
-            glyph_brush.queue(Section {
-                text: "Hello world!",
+            glyph_brush.queue(VariedSection {
                 screen_position: (10.0, 10.0),
-                color: [0.0, 0.0, 0.0, 1.0],
-                scale: Scale { x: 40.0, y: 40.0 },
-                bounds: (size.width as f32, size.height as f32),
-                ..Section::default()
+                text: vec![
+                    SectionText {
+                        text: "Hello ",
+                        scale: Scale::uniform(40.0),
+                        ..SectionText::default()
+                    },
+                    SectionText {
+                        text: "world!",
+                        color: [1.0, 0.0, 0.0, 1.0],
+                        scale: Scale::uniform(40.0),
+                        ..SectionText::default()
+                    },
+                ],
+                ..VariedSection::default()
             });
 
             glyph_brush
@@ -124,6 +133,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Event::EventsCleared => {
         //     window.request_redraw();
         // }
-        _ => *control_flow = ControlFlow::Wait,
+        _ => *control_flow = ControlFlow::Poll,
     });
 }
