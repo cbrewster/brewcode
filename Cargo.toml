@@ -7,4 +7,6 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+wgpu = "0.4.0"
+wgpu_glyph = "0.6.0"
 winit = "0.20.0-alpha5" # TODO: Update once out of alpha
