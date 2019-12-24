@@ -1,5 +1,6 @@
 use crate::rectangle_brush::RectangleBrush;
 use std::{
+    collections::HashMap,
     ops::Range,
     path::{Path, PathBuf},
 };
@@ -15,10 +16,57 @@ use winit::{
 
 const SCALE: f32 = 40.0;
 
+#[derive(Debug)]
 struct Cursor {
     row: usize,
     col: usize,
     col_affinity: usize,
+    selection_start: Option<(usize, usize)>,
+}
+
+#[derive(Debug)]
+enum SelectionRange {
+    FullLine,
+    StartsAt(usize),
+    EndsAt(usize),
+    StartAndEnd(usize, usize),
+}
+
+impl Cursor {
+    fn selection_ranges(&self) -> Option<HashMap<usize, SelectionRange>> {
+        let selection_start = match self.selection_start {
+            Some(selection_start) => selection_start,
+            None => return None,
+        };
+
+        // TODO: This is a bit more complex that I would like, let's revisit this later.
+
+        if selection_start.1 == self.row && selection_start.0 == self.col {
+            return None;
+        }
+
+        let start_is_before_cursor = selection_start.1 > self.row
+            || (selection_start.1 == self.row && selection_start.0 > self.col);
+
+        let (start, end) = if !start_is_before_cursor {
+            (selection_start, (self.col, self.row))
+        } else {
+            ((self.col, self.row), selection_start)
+        };
+
+        let mut ranges = HashMap::new();
+        if start.1 == end.1 {
+            ranges.insert(start.1, SelectionRange::StartAndEnd(start.0, end.0));
+        } else {
+            ranges.insert(start.1, SelectionRange::StartsAt(start.0));
+            for row in (start.1 + 1)..end.1 {
+                ranges.insert(row, SelectionRange::FullLine);
+            }
+            ranges.insert(end.1, SelectionRange::EndsAt(end.0));
+        }
+
+        Some(ranges)
+    }
 }
 
 pub struct Buffer {
@@ -26,6 +74,7 @@ pub struct Buffer {
     highlight_info: Vec<Vec<(Range<usize>, [f32; 4])>>,
     scroll: f32,
     cursor: Cursor,
+    dragging: bool,
     size: PhysicalSize,
     path: PathBuf,
     // TODO: Move those to editor?
@@ -88,11 +137,13 @@ impl Buffer {
                 row: 0,
                 col: 0,
                 col_affinity: 0,
+                selection_start: None,
             },
             size,
             path: path.into(),
             syntax_set,
             theme_set,
+            dragging: false,
         }
     }
 
@@ -132,17 +183,30 @@ impl Buffer {
         state: ElementState,
         position: PhysicalPosition,
     ) {
-        if button == MouseButton::Left && state == ElementState::Pressed {
-            self.handle_click(position);
+        if button == MouseButton::Left {
+            if state == ElementState::Pressed {
+                let location = self.hit_test(position);
+                self.cursor.row = location.1;
+                self.cursor.col = location.0;
+                self.cursor.col_affinity = location.0;
+                self.cursor.selection_start = Some(location);
+                self.dragging = true;
+            } else {
+                self.dragging = false;
+            }
         }
     }
 
-    pub fn handle_mouse_move(&mut self, _position: PhysicalPosition) {
-        // TODO: Support drag selection
+    pub fn handle_mouse_move(&mut self, position: PhysicalPosition) {
+        if self.dragging {
+            let (col, row) = self.hit_test(position);
+            self.cursor.row = row;
+            self.cursor.col = col;
+            self.cursor.col_affinity = col;
+        }
     }
 
-    fn handle_click(&mut self, position: PhysicalPosition) {
-        // TODO: this is duplicated in draw
+    fn hit_test(&self, position: PhysicalPosition) -> (usize, usize) {
         let x_pad = 10.0;
         let digit_count = self.lines.len().to_string().chars().count();
         let gutter_offset = x_pad + 30.0 + digit_count as f32 * (SCALE / 2.0);
@@ -151,18 +215,20 @@ impl Buffer {
             (position.x - gutter_offset as f64).max(0.0),
             position.y + self.scroll as f64,
         );
+
         let line = (abs_position.y / 40.0).floor() as usize;
         if line >= self.lines.len() {
-            self.cursor.row = self.lines.len() - 1;
-            self.cursor.col = self.lines.last().unwrap().len();
+            let row = self.lines.len() - 1;
+            let col = self.lines.last().unwrap().len();
+            (col, row)
         } else {
             // TODO: HACK this should not be hardcoded
             let h_advance = 19.065777;
             let col = (abs_position.x / h_advance).round() as usize;
-            self.cursor.row = line;
-            self.cursor.col = col.min(self.lines[line].len());
+            let row = line;
+            let col = col.min(self.lines[line].len());
+            (col, row)
         }
-        self.cursor.col_affinity = self.cursor.col;
     }
 
     pub fn handle_char_input(&mut self, input: char) {
@@ -210,6 +276,7 @@ impl Buffer {
 
         match keycode {
             VirtualKeyCode::Up => {
+                self.cursor.selection_start = None;
                 self.cursor.row = (self.cursor.row as isize - 1)
                     .max(0)
                     .min(self.lines.len() as isize) as usize;
@@ -218,6 +285,7 @@ impl Buffer {
                     .min(self.cursor.col_affinity);
             }
             VirtualKeyCode::Down => {
+                self.cursor.selection_start = None;
                 self.cursor.row = (self.cursor.row as isize + 1)
                     .max(0)
                     .min(self.lines.len() as isize - 1) as usize;
@@ -226,6 +294,7 @@ impl Buffer {
                     .min(self.cursor.col_affinity);
             }
             VirtualKeyCode::Left => {
+                self.cursor.selection_start = None;
                 if self.cursor.col == 0 {
                     if self.cursor.row > 0 {
                         self.cursor.row -= 1;
@@ -237,6 +306,7 @@ impl Buffer {
                 self.cursor.col_affinity = self.cursor.col;
             }
             VirtualKeyCode::Right => {
+                self.cursor.selection_start = None;
                 if self.cursor.col >= self.lines[self.cursor.row].len() {
                     if self.cursor.row < self.lines.len() - 1 {
                         self.cursor.row += 1;
@@ -258,6 +328,9 @@ impl Buffer {
         glyph_brush: &mut GlyphBrush<()>,
         rect_brush: &mut RectangleBrush,
     ) {
+        // TODO: This draw method is getting a bit unweidly, we should split some stuff
+        // into a layout pass to simplify drawing.
+
         let x_pad = 10.0;
         let digit_count = self.lines.len().to_string().chars().count();
         let gutter_offset = x_pad + 30.0 + digit_count as f32 * (SCALE / 2.0);
@@ -271,6 +344,8 @@ impl Buffer {
             size.height as i32,
             [0.06, 0.06, 0.06, 1.0],
         );
+
+        let selection_ranges = self.cursor.selection_ranges();
 
         for (index, (line, highlight)) in self
             .lines
@@ -287,6 +362,64 @@ impl Buffer {
             }
 
             let mut line_no_color = [0.4, 0.4, 0.4, 1.0];
+
+            if let Some(selection_ranges) = &selection_ranges {
+                if let Some(range) = selection_ranges.get(&index) {
+                    // TODO: Gah, we should not do this. We should do a single layout pass and add some
+                    // methods that lets us query glyph locations.
+                    let layout = glyph_brush.fonts().first().unwrap().layout(
+                        line,
+                        Scale::uniform(SCALE),
+                        Point { x: 0.0, y: 0.0 },
+                    );
+                    let (x, width) = match range {
+                        &SelectionRange::StartAndEnd(start, end) => {
+                            let mut x_pos = 0.0;
+                            let mut x_start = 0.0;
+                            for (i, positioned_glyph) in layout.enumerate().take(end) {
+                                if i == start {
+                                    x_start = x_pos;
+                                }
+                                x_pos += positioned_glyph.unpositioned().h_metrics().advance_width;
+                            }
+                            (x_start as i32, (x_pos - x_start) as i32)
+                        }
+                        &SelectionRange::StartsAt(index) => {
+                            let mut x_pos = 0.0;
+                            let mut x_start = 0.0;
+                            for (i, positioned_glyph) in layout.enumerate() {
+                                if i == index {
+                                    x_start = x_pos;
+                                }
+                                x_pos += positioned_glyph.unpositioned().h_metrics().advance_width;
+                            }
+                            (x_start as i32, (x_pos - x_start) as i32)
+                        }
+                        &SelectionRange::EndsAt(index) => {
+                            let mut x_pos = 0.0;
+                            for positioned_glyph in layout.take(index) {
+                                x_pos += positioned_glyph.unpositioned().h_metrics().advance_width;
+                            }
+                            (0, x_pos as i32)
+                        }
+                        &SelectionRange::FullLine => {
+                            let mut x_pos = 0.0;
+                            for positioned_glyph in layout {
+                                x_pos += positioned_glyph.unpositioned().h_metrics().advance_width;
+                            }
+                            (0, x_pos as i32)
+                        }
+                    };
+
+                    rect_brush.queue_rectangle(
+                        (x as f32 + gutter_offset) as i32,
+                        y as i32,
+                        width,
+                        SCALE as i32,
+                        [0.0, 0.0, 1.0, 0.1],
+                    );
+                }
+            }
 
             if index == self.cursor.row {
                 line_no_color = [1.0, 1.0, 1.0, 1.0];
