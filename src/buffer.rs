@@ -206,7 +206,11 @@ impl Buffer {
                 break;
             }
 
+            let mut line_no_color = [0.4, 0.4, 0.4, 1.0];
+
             if index == self.cursor.row {
+                line_no_color = [1.0, 1.0, 1.0, 1.0];
+
                 let mut layout = glyph_brush.fonts().first().unwrap().layout(
                     line,
                     Scale::uniform(SCALE),
@@ -245,7 +249,7 @@ impl Buffer {
                     text: &line_number.to_string(),
                     // TODO: Don't hardcode scale
                     scale: Scale::uniform(SCALE),
-                    color: [0.4, 0.4, 0.4, 1.0],
+                    color: line_no_color,
                     ..SectionText::default()
                 }],
                 ..VariedSection::default()
