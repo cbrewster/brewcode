@@ -26,7 +26,9 @@ impl Buffer {
     pub fn new(size: PhysicalSize, file_name: String) -> Buffer {
         let path = Path::new(&file_name);
         let file = std::fs::read_to_string(path).expect("Failed to read file.");
-        let mut lines: Vec<String> = file.lines().map(|line| line.to_owned()).collect();
+        // TODO: Not sure if just splitting '\n' is right here.
+        // I was using lines, but the trailing empty newline was omitted by lines.
+        let mut lines: Vec<String> = file.split('\n').map(|line| line.to_owned()).collect();
         if lines.len() == 0 {
             lines.push(String::new());
         }
