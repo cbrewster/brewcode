@@ -151,19 +151,25 @@ impl Buffer {
                     .min(self.cursor.col_affinity);
             }
             VirtualKeyCode::Left => {
-                self.cursor.col = (self.cursor.col as isize - 1)
-                    .max(0)
-                    .min(self.lines[self.cursor.row].len() as isize)
-                    as usize;
+                if self.cursor.col == 0 {
+                    if self.cursor.row > 0 {
+                        self.cursor.row -= 1;
+                        self.cursor.col = self.lines[self.cursor.row].len();
+                    }
+                } else {
+                    self.cursor.col -= 1;
+                }
                 self.cursor.col_affinity = self.cursor.col;
             }
             VirtualKeyCode::Right => {
-                self.cursor.col = (self.cursor.col as isize + 1)
-                    .max(0)
-                    .min(self.lines[self.cursor.row].len() as isize)
-                    as usize;
-                self.cursor.col_affinity = self.cursor.col;
-
+                if self.cursor.col >= self.lines[self.cursor.row].len() {
+                    if self.cursor.row < self.lines.len() - 1 {
+                        self.cursor.row += 1;
+                        self.cursor.col = 0;
+                    }
+                } else {
+                    self.cursor.col += 1;
+                }
                 self.cursor.col_affinity = self.cursor.col;
             }
             _ => {}
