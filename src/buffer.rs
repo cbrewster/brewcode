@@ -1,5 +1,13 @@
 use crate::rectangle_brush::RectangleBrush;
-use std::path::{Path, PathBuf};
+use std::{
+    ops::Range,
+    path::{Path, PathBuf},
+};
+use syntect::{
+    easy::HighlightLines,
+    highlighting::{HighlightState, Highlighter, RangedHighlightIterator, Style, ThemeSet},
+    parsing::{ParseState, SyntaxSet},
+};
 use wgpu_glyph::{GlyphBrush, Point, Scale, SectionText, VariedSection};
 use winit::{
     dpi::{PhysicalPosition, PhysicalSize},
@@ -16,10 +24,47 @@ struct Cursor {
 
 pub struct Buffer {
     lines: Vec<String>,
+    highlight_info: Vec<Vec<(Range<usize>, [f32; 4])>>,
     scroll: f32,
     cursor: Cursor,
     size: PhysicalSize,
     path: PathBuf,
+    // TODO: Move those to editor?
+    syntax_set: SyntaxSet,
+    theme_set: ThemeSet,
+}
+
+fn generate_highlight_info(
+    lines: &[String],
+    info: &mut Vec<Vec<(Range<usize>, [f32; 4])>>,
+    syntax_set: &SyntaxSet,
+    theme_set: &ThemeSet,
+) {
+    info.clear();
+    // TODO: Not every file is .rs
+    let syntax = syntax_set.find_syntax_by_extension("rs").unwrap();
+    let highlighter = Highlighter::new(&theme_set.themes["Solarized (dark)"]);
+    let mut highlight_state = HighlightState::new(&highlighter, Default::default());
+    let mut parse_state = ParseState::new(syntax);
+
+    for line in lines {
+        let ops = parse_state.parse_line(line, syntax_set);
+        let iter = RangedHighlightIterator::new(&mut highlight_state, &ops[..], line, &highlighter);
+        info.push(
+            iter.map(|(Style { foreground, .. }, _, range)| {
+                (
+                    range,
+                    [
+                        foreground.r as f32 / 255.0,
+                        foreground.g as f32 / 255.0,
+                        foreground.b as f32 / 255.0,
+                        foreground.a as f32 / 255.0,
+                    ],
+                )
+            })
+            .collect(),
+        );
+    }
 }
 
 impl Buffer {
@@ -32,7 +77,12 @@ impl Buffer {
         if lines.len() == 0 {
             lines.push(String::new());
         }
+        let syntax_set = SyntaxSet::load_defaults_newlines();
+        let theme_set = ThemeSet::load_defaults();
+        let mut highlight_info = vec![];
+        generate_highlight_info(&lines, &mut highlight_info, &syntax_set, &theme_set);
         Buffer {
+            highlight_info,
             scroll: 0.0,
             lines,
             cursor: Cursor {
@@ -42,6 +92,8 @@ impl Buffer {
             },
             size,
             path: path.into(),
+            syntax_set,
+            theme_set,
         }
     }
 
@@ -121,6 +173,15 @@ impl Buffer {
         }
         self.cursor.col_affinity = self.cursor.col;
         self.ensure_cursor_in_view();
+        // TODO: recalculating highlighting every time an edit happes is pretty expensive
+        // We should minimize the amount of recomputation and maybe allow for highlighting to be done
+        // in a more async manner?
+        generate_highlight_info(
+            &self.lines,
+            &mut self.highlight_info,
+            &self.syntax_set,
+            &self.theme_set,
+        );
     }
 
     pub fn handle_keyboard_input(&mut self, input: KeyboardInput) {
@@ -197,7 +258,12 @@ impl Buffer {
             [0.06, 0.06, 0.06, 1.0],
         );
 
-        for (index, line) in self.lines.iter().enumerate() {
+        for (index, (line, highlight)) in self
+            .lines
+            .iter()
+            .zip(self.highlight_info.iter())
+            .enumerate()
+        {
             if y < -SCALE {
                 y += SCALE;
                 continue;
@@ -255,14 +321,19 @@ impl Buffer {
                 ..VariedSection::default()
             });
 
+            let text = highlight
+                .iter()
+                .map(|(range, color)| SectionText {
+                    text: &line[range.clone()],
+                    scale: Scale::uniform(SCALE),
+                    color: *color,
+                    ..SectionText::default()
+                })
+                .collect();
+
             glyph_brush.queue(VariedSection {
                 screen_position: (gutter_offset, y),
-                text: vec![SectionText {
-                    text: line,
-                    scale: Scale::uniform(SCALE),
-                    color: [0.7, 0.7, 0.7, 1.0],
-                    ..SectionText::default()
-                }],
+                text,
                 ..VariedSection::default()
             });
 
