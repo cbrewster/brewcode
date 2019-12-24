@@ -4,7 +4,6 @@ use std::{
     path::{Path, PathBuf},
 };
 use syntect::{
-    easy::HighlightLines,
     highlighting::{HighlightState, Highlighter, RangedHighlightIterator, Style, ThemeSet},
     parsing::{ParseState, SyntaxSet},
 };
