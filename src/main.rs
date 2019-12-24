@@ -12,7 +12,7 @@ use rectangle_brush::RectangleBrush;
 
 use wgpu_glyph::{GlyphBrushBuilder, Scale, Section};
 use winit::{
-    event::{Event, ModifiersState, MouseScrollDelta, VirtualKeyCode, WindowEvent},
+    event::{ElementState, Event, ModifiersState, MouseScrollDelta, VirtualKeyCode, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
     window::{CursorIcon, WindowBuilder},
 };
@@ -68,6 +68,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut editor = Editor::new(size, file_name);
     let mut last_frame = std::time::Instant::now();
+
+    let mut modifier_pressed = false;
+
     event_loop.run(move |event, _, control_flow| match event {
         Event::WindowEvent {
             event: WindowEvent::CloseRequested,
@@ -77,31 +80,38 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Event::WindowEvent {
             event: WindowEvent::KeyboardInput { input, .. },
             ..
-        } => match (input.virtual_keycode, input.modifiers) {
-            // Quit
-            (Some(VirtualKeyCode::Q), ModifiersState { logo: true, .. }) => {
-                *control_flow = ControlFlow::Exit
+        } => {
+            if input.virtual_keycode == Some(VirtualKeyCode::LWin) {
+                modifier_pressed = input.state == ElementState::Pressed;
             }
+            match (input.virtual_keycode, input.modifiers) {
+                // Quit
+                (Some(VirtualKeyCode::Q), ModifiersState { logo: true, .. }) => {
+                    *control_flow = ControlFlow::Exit
+                }
 
-            // Save
-            (Some(VirtualKeyCode::S), ModifiersState { logo: true, .. }) => {
-                editor.save();
-            }
+                // Save
+                (Some(VirtualKeyCode::S), ModifiersState { logo: true, .. }) => {
+                    editor.save();
+                }
 
-            _ => {
-                editor.handle_keyboard_input(input);
-                // TODO: Only redraw is something has changed
-                window.request_redraw();
+                _ => {
+                    editor.handle_keyboard_input(input);
+                    // TODO: Only redraw is something has changed
+                    window.request_redraw();
+                }
             }
-        },
+        }
 
         Event::WindowEvent {
             event: WindowEvent::ReceivedCharacter(input),
             ..
         } => {
-            editor.handle_char_input(input);
-            // TODO: Only redraw is something has changed
-            window.request_redraw();
+            if !modifier_pressed {
+                editor.handle_char_input(input);
+                // TODO: Only redraw is something has changed
+                window.request_redraw();
+            }
         }
 
         Event::WindowEvent {
@@ -201,6 +211,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Event::EventsCleared => {
         //     window.request_redraw();
         // }
-        _ => *control_flow = ControlFlow::Poll,
+        _ => *control_flow = ControlFlow::Wait,
     });
 }
