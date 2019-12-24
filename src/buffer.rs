@@ -45,24 +45,19 @@ impl Cursor {
             return None;
         }
 
-        let start_is_before_cursor = selection_start.1 > self.row
-            || (selection_start.1 == self.row && selection_start.0 > self.col);
-
-        let (start, end) = if !start_is_before_cursor {
-            (selection_start, (self.col, self.row))
-        } else {
-            ((self.col, self.row), selection_start)
-        };
+        let (start_row, start_col) =
+            (self.row, self.col).min((selection_start.1, selection_start.0));
+        let (end_row, end_col) = (self.row, self.col).max((selection_start.1, selection_start.0));
 
         let mut ranges = HashMap::new();
-        if start.1 == end.1 {
-            ranges.insert(start.1, SelectionRange::StartAndEnd(start.0, end.0));
+        if start_row == end_row {
+            ranges.insert(start_row, SelectionRange::StartAndEnd(start_col, end_col));
         } else {
-            ranges.insert(start.1, SelectionRange::StartsAt(start.0));
-            for row in (start.1 + 1)..end.1 {
+            ranges.insert(start_row, SelectionRange::StartsAt(start_col));
+            for row in (start_row + 1)..end_row {
                 ranges.insert(row, SelectionRange::FullLine);
             }
-            ranges.insert(end.1, SelectionRange::EndsAt(end.0));
+            ranges.insert(end_row, SelectionRange::EndsAt(end_col));
         }
 
         Some(ranges)
