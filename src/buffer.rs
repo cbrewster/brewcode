@@ -233,7 +233,7 @@ impl Buffer {
                 );
 
                 rect_brush.queue_rectangle(
-                    cursor_x as i32,
+                    cursor_x as i32 - 2,
                     y as i32,
                     4,
                     SCALE as i32,
