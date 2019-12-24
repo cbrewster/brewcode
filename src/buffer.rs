@@ -10,7 +10,7 @@ use syntect::{
 use wgpu_glyph::{GlyphBrush, Point, Scale, SectionText, VariedSection};
 use winit::{
     dpi::{PhysicalPosition, PhysicalSize},
-    event::{ElementState, KeyboardInput, VirtualKeyCode},
+    event::{ElementState, KeyboardInput, MouseButton, VirtualKeyCode},
 };
 
 const SCALE: f32 = 40.0;
@@ -126,7 +126,22 @@ impl Buffer {
         self.scroll = (self.scroll + delta).max(0.0).min(max_scroll);
     }
 
-    pub fn handle_click(&mut self, position: PhysicalPosition) {
+    pub fn handle_mouse_input(
+        &mut self,
+        button: MouseButton,
+        state: ElementState,
+        position: PhysicalPosition,
+    ) {
+        if button == MouseButton::Left && state == ElementState::Pressed {
+            self.handle_click(position);
+        }
+    }
+
+    pub fn handle_mouse_move(&mut self, _position: PhysicalPosition) {
+        // TODO: Support drag selection
+    }
+
+    fn handle_click(&mut self, position: PhysicalPosition) {
         // TODO: this is duplicated in draw
         let x_pad = 10.0;
         let digit_count = self.lines.len().to_string().chars().count();

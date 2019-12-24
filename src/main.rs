@@ -14,10 +14,7 @@ use rectangle_brush::RectangleBrush;
 use wgpu_glyph::{GlyphBrushBuilder, Scale, Section};
 use winit::{
     dpi::PhysicalPosition,
-    event::{
-        ElementState, Event, ModifiersState, MouseButton, MouseScrollDelta, VirtualKeyCode,
-        WindowEvent,
-    },
+    event::{ElementState, Event, ModifiersState, MouseScrollDelta, VirtualKeyCode, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
     window::{CursorIcon, WindowBuilder},
 };
@@ -123,16 +120,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Event::WindowEvent {
             event: WindowEvent::CursorMoved { position, .. },
             ..
-        } => cursor_position = position.to_physical(window.hidpi_factor()),
+        } => {
+            cursor_position = position.to_physical(window.hidpi_factor());
+            editor.handle_mouse_move(cursor_position);
+            window.request_redraw();
+        }
 
         Event::WindowEvent {
             event: WindowEvent::MouseInput { state, button, .. },
             ..
         } => {
-            if button == MouseButton::Left && state == ElementState::Pressed {
-                editor.handle_click(cursor_position);
-                window.request_redraw();
-            }
+            editor.handle_mouse_input(button, state, cursor_position);
+            window.request_redraw();
         }
 
         Event::WindowEvent {

@@ -3,7 +3,7 @@ use crate::rectangle_brush::RectangleBrush;
 use wgpu_glyph::GlyphBrush;
 use winit::{
     dpi::{PhysicalPosition, PhysicalSize},
-    event::KeyboardInput,
+    event::{ElementState, KeyboardInput, MouseButton},
 };
 
 pub struct Editor {
@@ -40,8 +40,17 @@ impl Editor {
         self.buffers[self.active_buffer].handle_keyboard_input(input);
     }
 
-    pub fn handle_click(&mut self, position: PhysicalPosition) {
-        self.buffers[self.active_buffer].handle_click(position);
+    pub fn handle_mouse_input(
+        &mut self,
+        button: MouseButton,
+        state: ElementState,
+        position: PhysicalPosition,
+    ) {
+        self.buffers[self.active_buffer].handle_mouse_input(button, state, position);
+    }
+
+    pub fn handle_mouse_move(&mut self, position: PhysicalPosition) {
+        self.buffers[self.active_buffer].handle_mouse_move(position);
     }
 
     pub fn draw(
