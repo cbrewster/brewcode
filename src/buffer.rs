@@ -1,4 +1,5 @@
 use crate::rectangle_brush::RectangleBrush;
+use std::path::{Path, PathBuf};
 use wgpu_glyph::{GlyphBrush, Point, Scale, SectionText, VariedSection};
 use winit::{
     dpi::PhysicalSize,
@@ -18,21 +19,32 @@ pub struct Buffer {
     scroll: f32,
     cursor: Cursor,
     size: PhysicalSize,
+    path: PathBuf,
 }
 
 impl Buffer {
-    pub fn new(size: PhysicalSize) -> Buffer {
-        let file = include_str!("main.rs");
+    pub fn new(size: PhysicalSize, file_name: String) -> Buffer {
+        let path = Path::new(&file_name);
+        let file = std::fs::read_to_string(path).expect("Failed to read file.");
+        let mut lines: Vec<String> = file.lines().map(|line| line.to_owned()).collect();
+        if lines.len() == 0 {
+            lines.push(String::new());
+        }
         Buffer {
             scroll: 0.0,
-            lines: file.lines().map(|line| line.to_owned()).collect(),
+            lines,
             cursor: Cursor {
                 row: 0,
                 col: 0,
                 col_affinity: 0,
             },
             size,
+            path: path.into(),
         }
+    }
+
+    pub fn save(&self) {
+        std::fs::write(&self.path, self.lines.join("\n")).expect("Failed to save file.");
     }
 
     pub fn update_size(&mut self, size: PhysicalSize) {

@@ -10,12 +10,16 @@ pub struct Editor {
 }
 
 impl Editor {
-    pub fn new(size: PhysicalSize) -> Editor {
+    pub fn new(size: PhysicalSize, file_name: String) -> Editor {
         Editor {
-            buffers: vec![Buffer::new(size)],
+            buffers: vec![Buffer::new(size, file_name)],
             active_buffer: 0,
             size,
         }
+    }
+
+    pub fn save(&self) {
+        self.buffers[self.active_buffer].save();
     }
 
     pub fn update_size(&mut self, size: PhysicalSize) {

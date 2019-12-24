@@ -12,12 +12,15 @@ use rectangle_brush::RectangleBrush;
 
 use wgpu_glyph::{GlyphBrushBuilder, Scale, Section};
 use winit::{
-    event::{Event, KeyboardInput, ModifiersState, MouseScrollDelta, VirtualKeyCode, WindowEvent},
+    event::{Event, ModifiersState, MouseScrollDelta, VirtualKeyCode, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
     window::{CursorIcon, WindowBuilder},
 };
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut args = std::env::args();
+    let file_name = args.nth(1).expect("Must specify a file to open");
+
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
         .with_title("brewcode")
@@ -63,7 +66,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     window.request_redraw();
     window.set_cursor_icon(CursorIcon::Text);
 
-    let mut editor = Editor::new(size);
+    let mut editor = Editor::new(size, file_name);
     let mut last_frame = std::time::Instant::now();
     event_loop.run(move |event, _, control_flow| match event {
         Event::WindowEvent {
@@ -72,33 +75,31 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         } => *control_flow = ControlFlow::Exit,
 
         Event::WindowEvent {
-            event:
-                WindowEvent::KeyboardInput {
-                    input:
-                        KeyboardInput {
-                            virtual_keycode: Some(VirtualKeyCode::Q),
-                            modifiers: ModifiersState { logo: true, .. },
-                            ..
-                        },
-                    ..
-                },
+            event: WindowEvent::KeyboardInput { input, .. },
             ..
-        } => *control_flow = ControlFlow::Exit,
+        } => match (input.virtual_keycode, input.modifiers) {
+            // Quit
+            (Some(VirtualKeyCode::Q), ModifiersState { logo: true, .. }) => {
+                *control_flow = ControlFlow::Exit
+            }
+
+            // Save
+            (Some(VirtualKeyCode::S), ModifiersState { logo: true, .. }) => {
+                editor.save();
+            }
+
+            _ => {
+                editor.handle_keyboard_input(input);
+                // TODO: Only redraw is something has changed
+                window.request_redraw();
+            }
+        },
 
         Event::WindowEvent {
             event: WindowEvent::ReceivedCharacter(input),
             ..
         } => {
             editor.handle_char_input(input);
-            // TODO: Only redraw is something has changed
-            window.request_redraw();
-        }
-
-        Event::WindowEvent {
-            event: WindowEvent::KeyboardInput { input, .. },
-            ..
-        } => {
-            editor.handle_keyboard_input(input);
             // TODO: Only redraw is something has changed
             window.request_redraw();
         }
