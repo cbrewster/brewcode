@@ -1,7 +1,8 @@
 // TODO List
-// * Do better text layout and more easily track metrics?
-// * Support mouse clicking
-// * Text selection
+// * Do better text layout and more easily track metrics? (helpful for hit-testing)
+// * Text selections
+// * Support mouse up/down/move in editor/buffer
+// * Add layout functionality
 
 mod buffer;
 mod editor;
@@ -12,7 +13,11 @@ use rectangle_brush::RectangleBrush;
 
 use wgpu_glyph::{GlyphBrushBuilder, Scale, Section};
 use winit::{
-    event::{ElementState, Event, ModifiersState, MouseScrollDelta, VirtualKeyCode, WindowEvent},
+    dpi::PhysicalPosition,
+    event::{
+        ElementState, Event, ModifiersState, MouseButton, MouseScrollDelta, VirtualKeyCode,
+        WindowEvent,
+    },
     event_loop::{ControlFlow, EventLoop},
     window::{CursorIcon, WindowBuilder},
 };
@@ -70,6 +75,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut last_frame = std::time::Instant::now();
 
     let mut modifier_pressed = false;
+    let mut cursor_position = PhysicalPosition::new(0.0, 0.0);
 
     event_loop.run(move |event, _, control_flow| match event {
         Event::WindowEvent {
@@ -110,6 +116,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             if !modifier_pressed {
                 editor.handle_char_input(input);
                 // TODO: Only redraw is something has changed
+                window.request_redraw();
+            }
+        }
+
+        Event::WindowEvent {
+            event: WindowEvent::CursorMoved { position, .. },
+            ..
+        } => cursor_position = position.to_physical(window.hidpi_factor()),
+
+        Event::WindowEvent {
+            event: WindowEvent::MouseInput { state, button, .. },
+            ..
+        } => {
+            if button == MouseButton::Left && state == ElementState::Pressed {
+                editor.handle_click(cursor_position);
                 window.request_redraw();
             }
         }

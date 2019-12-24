@@ -2,7 +2,7 @@ use crate::rectangle_brush::RectangleBrush;
 use std::path::{Path, PathBuf};
 use wgpu_glyph::{GlyphBrush, Point, Scale, SectionText, VariedSection};
 use winit::{
-    dpi::PhysicalSize,
+    dpi::{PhysicalPosition, PhysicalSize},
     event::{ElementState, KeyboardInput, VirtualKeyCode},
 };
 
@@ -71,6 +71,30 @@ impl Buffer {
         };
 
         self.scroll = (self.scroll + delta).max(0.0).min(max_scroll);
+    }
+
+    pub fn handle_click(&mut self, position: PhysicalPosition) {
+        // TODO: this is duplicated in draw
+        let x_pad = 10.0;
+        let digit_count = self.lines.len().to_string().chars().count();
+        let gutter_offset = x_pad + 30.0 + digit_count as f32 * (SCALE / 2.0);
+
+        let abs_position = PhysicalPosition::new(
+            (position.x - gutter_offset as f64).max(0.0),
+            position.y + self.scroll as f64,
+        );
+        let line = (abs_position.y / 40.0).floor() as usize;
+        if line >= self.lines.len() {
+            self.cursor.row = self.lines.len() - 1;
+            self.cursor.col = self.lines.last().unwrap().len();
+        } else {
+            // TODO: HACK this should not be hardcoded
+            let h_advance = 19.065777;
+            let col = (abs_position.x / h_advance).round() as usize;
+            self.cursor.row = line;
+            self.cursor.col = col.min(self.lines[line].len());
+        }
+        self.cursor.col_affinity = self.cursor.col;
     }
 
     pub fn handle_char_input(&mut self, input: char) {
