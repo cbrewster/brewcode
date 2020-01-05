@@ -17,7 +17,7 @@ pub struct RectangleBrush {
     current_transform: [f32; 16],
 }
 
-#[cfg_attr(rustfmt, rustfmt_skip)]
+#[rustfmt::skip]
 const IDENTITY_MATRIX: [f32; 16] = [
     1.0, 0.0, 0.0, 0.0,
     0.0, 1.0, 0.0, 0.0,
@@ -96,7 +96,7 @@ impl RectangleBrush {
             }),
             primitive_topology: wgpu::PrimitiveTopology::TriangleStrip,
             color_states: &[wgpu::ColorStateDescriptor {
-                format: format,
+                format,
                 color_blend: wgpu::BlendDescriptor {
                     src_factor: wgpu::BlendFactor::SrcAlpha,
                     dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
@@ -115,16 +115,19 @@ impl RectangleBrush {
                 stride: std::mem::size_of::<RectInstance>() as u64,
                 step_mode: wgpu::InputStepMode::Instance,
                 attributes: &[
+                    // top-left
                     wgpu::VertexAttributeDescriptor {
                         shader_location: 0,
                         format: wgpu::VertexFormat::Float2,
                         offset: 0,
                     },
+                    // bottom-right
                     wgpu::VertexAttributeDescriptor {
                         shader_location: 1,
                         format: wgpu::VertexFormat::Float2,
                         offset: 4 * 2,
                     },
+                    // color
                     wgpu::VertexAttributeDescriptor {
                         shader_location: 2,
                         format: wgpu::VertexFormat::Float4,
@@ -204,6 +207,9 @@ impl RectangleBrush {
             self.current_transform = ortho_proj;
         }
 
+        // We don't really need new render passes for this. Let's maybe pass this in the draw call?
+        // This was modelled after wgpu_glyph which wants its own render pass, but there really
+        // isn't a need to do this as we can just use the same render pass and swap out the pipeline.
         let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
                 attachment: view,
