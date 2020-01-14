@@ -9,11 +9,11 @@ use winit::{
 pub struct Editor {
     buffers: Vec<Buffer>,
     active_buffer: usize,
-    size: PhysicalSize,
+    size: PhysicalSize<u32>,
 }
 
 impl Editor {
-    pub fn new(size: PhysicalSize, file_name: String) -> Editor {
+    pub fn new(size: PhysicalSize<u32>, file_name: String) -> Editor {
         Editor {
             buffers: vec![Buffer::new(size, file_name)],
             active_buffer: 0,
@@ -25,7 +25,7 @@ impl Editor {
         self.buffers[self.active_buffer].save();
     }
 
-    pub fn update_size(&mut self, size: PhysicalSize) {
+    pub fn update_size(&mut self, size: PhysicalSize<u32>) {
         self.size = size;
         for buffer in &mut self.buffers {
             buffer.update_size(size);
@@ -44,18 +44,18 @@ impl Editor {
         &mut self,
         button: MouseButton,
         state: ElementState,
-        position: PhysicalPosition,
+        position: PhysicalPosition<i32>,
     ) {
         self.buffers[self.active_buffer].handle_mouse_input(button, state, position);
     }
 
-    pub fn handle_mouse_move(&mut self, position: PhysicalPosition) {
+    pub fn handle_mouse_move(&mut self, position: PhysicalPosition<i32>) {
         self.buffers[self.active_buffer].handle_mouse_move(position);
     }
 
     pub fn draw(
         &self,
-        size: PhysicalSize,
+        size: PhysicalSize<u32>,
         glyph_brush: &mut GlyphBrush<()>,
         rect_brush: &mut RectangleBrush,
     ) {
