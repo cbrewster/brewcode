@@ -223,7 +223,7 @@ impl Buffer {
         &mut self,
         button: MouseButton,
         state: ElementState,
-        position: PhysicalPosition<u32>,
+        position: PhysicalPosition<i32>,
     ) {
         if button == MouseButton::Left {
             if state == ElementState::Pressed {
@@ -238,7 +238,7 @@ impl Buffer {
         }
     }
 
-    pub fn handle_mouse_move(&mut self, position: PhysicalPosition<u32>) {
+    pub fn handle_mouse_move(&mut self, position: PhysicalPosition<i32>) {
         if self.dragging {
             if self.cursor.selection_start.is_none() {
                 self.cursor.selection_start = Some(self.cursor.location);
@@ -249,14 +249,14 @@ impl Buffer {
         }
     }
 
-    fn hit_test(&self, position: PhysicalPosition<u32>) -> Location {
+    fn hit_test(&self, position: PhysicalPosition<i32>) -> Location {
         let x_pad = 10.0;
         let digit_count = self.lines.len().to_string().chars().count();
         let gutter_offset = x_pad + 30.0 + digit_count as f32 * (SCALE / 2.0);
 
         let abs_position = PhysicalPosition::new(
-            (position.x - gutter_offset as f64).max(0.0),
-            position.y + self.scroll as f64,
+            (position.x as f32 - gutter_offset).max(0.0),
+            position.y as f32 + self.scroll,
         );
 
         let line = (abs_position.y / 40.0).floor() as usize;

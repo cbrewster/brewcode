@@ -27,7 +27,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let window = WindowBuilder::new()
         .with_title("brewcode")
         .build(&event_loop)?;
-    let mut size = window.inner_size().to_physical(window.hidpi_factor());
+    let mut size = window.inner_size();
     let surface = wgpu::Surface::create(&window);
 
     let adapter = wgpu::Adapter::request(&wgpu::RequestAdapterOptions {
@@ -51,8 +51,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         &wgpu::SwapChainDescriptor {
             usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
             format: render_format,
-            width: size.width.round() as u32,
-            height: size.height.round() as u32,
+            width: size.width,
+            height: size.height,
             present_mode: wgpu::PresentMode::Vsync,
         },
     );
@@ -72,7 +72,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut last_frame = std::time::Instant::now();
 
     let mut modifier_pressed = false;
-    let mut cursor_position = PhysicalPosition::new(0.0, 0.0);
+    let mut cursor_position: PhysicalPosition<i32> = PhysicalPosition::new(0, 0);
 
     event_loop.run(move |event, _, control_flow| match event {
         Event::WindowEvent {
@@ -89,12 +89,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
             match (input.virtual_keycode, input.modifiers) {
                 // Quit
-                (Some(VirtualKeyCode::Q), ModifiersState { ctrl: true, .. }) => {
+                (Some(VirtualKeyCode::Q), ModifiersState::CTRL) => {
                     *control_flow = ControlFlow::Exit
                 }
 
                 // Save
-                (Some(VirtualKeyCode::S), ModifiersState { ctrl: true, .. }) => {
+                (Some(VirtualKeyCode::S), ModifiersState::CTRL) => {
                     editor.save();
                 }
 
@@ -121,7 +121,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             event: WindowEvent::CursorMoved { position, .. },
             ..
         } => {
-            cursor_position = position.to_physical(window.hidpi_factor());
+            cursor_position = position;
             editor.handle_mouse_move(cursor_position);
             window.request_redraw();
         }
@@ -152,16 +152,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             event: WindowEvent::Resized(new_size),
             ..
         } => {
-            size = new_size.to_physical(window.hidpi_factor());
-            editor.update_size(size);
+            editor.update_size(new_size);
 
             swap_chain = device.create_swap_chain(
                 &surface,
                 &wgpu::SwapChainDescriptor {
                     usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
                     format: render_format,
-                    width: size.width.round() as u32,
-                    height: size.height.round() as u32,
+                    width: size.width,
+                    height: size.height,
                     present_mode: wgpu::PresentMode::Vsync,
                 },
             );
@@ -169,10 +168,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             window.request_redraw();
         }
 
-        Event::WindowEvent {
-            event: WindowEvent::RedrawRequested,
-            ..
-        } => {
+        Event::RedrawRequested(_) => {
             let dt = last_frame.elapsed().as_millis();
             let fps = 1.0 / ((dt as f32) / 1000.0);
             last_frame = std::time::Instant::now();
@@ -204,7 +200,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 &device,
                 &mut encoder,
                 &frame.view,
-                (size.width, size.height),
+                (size.width as f64, size.height as f64),
             );
 
             glyph_brush.queue(Section {
@@ -220,8 +216,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     &mut device,
                     &mut encoder,
                     &frame.view,
-                    size.width.round() as u32,
-                    size.height.round() as u32,
+                    size.width,
+                    size.height,
                 )
                 .expect("Failed to draw queued text.");
 

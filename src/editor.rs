@@ -44,12 +44,12 @@ impl Editor {
         &mut self,
         button: MouseButton,
         state: ElementState,
-        position: PhysicalPosition<u32>,
+        position: PhysicalPosition<i32>,
     ) {
         self.buffers[self.active_buffer].handle_mouse_input(button, state, position);
     }
 
-    pub fn handle_mouse_move(&mut self, position: PhysicalPosition<u32>) {
+    pub fn handle_mouse_move(&mut self, position: PhysicalPosition<i32>) {
         self.buffers[self.active_buffer].handle_mouse_move(position);
     }
 
