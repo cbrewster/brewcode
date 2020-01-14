@@ -121,7 +121,7 @@ pub struct Buffer {
     scroll: f32,
     cursor: Cursor,
     dragging: bool,
-    size: PhysicalSize,
+    size: PhysicalSize<u32>,
     path: PathBuf,
     // TODO: Move those to editor?
     syntax_set: SyntaxSet,
@@ -162,7 +162,7 @@ fn generate_highlight_info(
 }
 
 impl Buffer {
-    pub fn new(size: PhysicalSize, file_name: String) -> Buffer {
+    pub fn new(size: PhysicalSize<u32>, file_name: String) -> Buffer {
         let path = Path::new(&file_name);
         let file = std::fs::read_to_string(path).expect("Failed to read file.");
         // TODO: Not sure if just splitting '\n' is right here.
@@ -193,7 +193,7 @@ impl Buffer {
         std::fs::write(&self.path, self.lines.join("\n")).expect("Failed to save file.");
     }
 
-    pub fn update_size(&mut self, size: PhysicalSize) {
+    pub fn update_size(&mut self, size: PhysicalSize<u32>) {
         self.size = size;
     }
 
@@ -223,7 +223,7 @@ impl Buffer {
         &mut self,
         button: MouseButton,
         state: ElementState,
-        position: PhysicalPosition,
+        position: PhysicalPosition<u32>,
     ) {
         if button == MouseButton::Left {
             if state == ElementState::Pressed {
@@ -238,7 +238,7 @@ impl Buffer {
         }
     }
 
-    pub fn handle_mouse_move(&mut self, position: PhysicalPosition) {
+    pub fn handle_mouse_move(&mut self, position: PhysicalPosition<u32>) {
         if self.dragging {
             if self.cursor.selection_start.is_none() {
                 self.cursor.selection_start = Some(self.cursor.location);
@@ -249,7 +249,7 @@ impl Buffer {
         }
     }
 
-    fn hit_test(&self, position: PhysicalPosition) -> Location {
+    fn hit_test(&self, position: PhysicalPosition<u32>) -> Location {
         let x_pad = 10.0;
         let digit_count = self.lines.len().to_string().chars().count();
         let gutter_offset = x_pad + 30.0 + digit_count as f32 * (SCALE / 2.0);
@@ -388,7 +388,7 @@ impl Buffer {
 
     pub fn draw(
         &self,
-        size: PhysicalSize,
+        size: PhysicalSize<u32>,
         glyph_brush: &mut GlyphBrush<()>,
         rect_brush: &mut RectangleBrush,
     ) {
