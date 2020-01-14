@@ -1,4 +1,4 @@
- // TODO List
+// TODO List
 // * Do better text layout and more easily track metrics? (helpful for hit-testing)
 // * Text selections
 // * Support mouse up/down/move in editor/buffer
@@ -84,17 +84,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             event: WindowEvent::KeyboardInput { input, .. },
             ..
         } => {
-            if input.virtual_keycode == Some(VirtualKeyCode::LWin) {
+            if input.virtual_keycode == Some(VirtualKeyCode::LControl) {
                 modifier_pressed = input.state == ElementState::Pressed;
             }
             match (input.virtual_keycode, input.modifiers) {
                 // Quit
-                (Some(VirtualKeyCode::Q), ModifiersState { logo: true, .. }) => {
+                (Some(VirtualKeyCode::Q), ModifiersState { ctrl: true, .. }) => {
                     *control_flow = ControlFlow::Exit
                 }
 
                 // Save
-                (Some(VirtualKeyCode::S), ModifiersState { logo: true, .. }) => {
+                (Some(VirtualKeyCode::S), ModifiersState { ctrl: true, .. }) => {
                     editor.save();
                 }
 
