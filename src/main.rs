@@ -27,7 +27,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let window = WindowBuilder::new()
         .with_title("brewcode")
         .build(&event_loop)?;
-    let mut size = window.inner_size();
+    let size = window.inner_size();
     let surface = wgpu::Surface::create(&window);
 
     let adapter = wgpu::Adapter::request(&wgpu::RequestAdapterOptions {
