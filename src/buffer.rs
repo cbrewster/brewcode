@@ -281,8 +281,6 @@ impl Buffer {
             self.cursor.set_row(self.cursor.location.row + 1);
             self.lines.insert(self.cursor.location.row, new_line);
             self.cursor.set_col_with_affinity(0);
-        // this is Delete
-        //} else if input == '\u{7f}' {
         // this is Backspace
         } else if input == '\u{8}' {
             dbg!("first");
@@ -298,6 +296,13 @@ impl Buffer {
                 self.cursor
                     .set_col_with_affinity(self.lines[self.cursor.location.row].len());
                 self.lines[self.cursor.location.row].push_str(&remaining);
+            }
+        // this is Delete
+        } else if input == '\u{7f}' {
+            dbg!("delete first");
+            dbg!("{}", &self.lines[self.cursor.location.row]);
+            if self.lines[self.cursor.location.row].len() > self.cursor.location.col {
+                self.lines[self.cursor.location.row].remove(self.cursor.location.col);
             }
         } else {
             dbg!("four");
