@@ -304,6 +304,10 @@ impl Buffer {
             if self.lines[self.cursor.location.row].len() > self.cursor.location.col {
                 self.lines[self.cursor.location.row].remove(self.cursor.location.col);
             }
+        } else if input == '\t' {
+            // Do nothing, unless we consider how to display tab,
+            // because now cursor should be moved to right one character when deleting
+            // Also, now when there is \t in the file, it will not be displayed correctly
         } else {
             dbg!("four");
             self.lines[self.cursor.location.row].insert(self.cursor.location.col, input);
