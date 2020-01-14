@@ -24,10 +24,7 @@ struct Location {
 
 impl Location {
     fn new() -> Location {
-        Location {
-            row: 0,
-            col: 0,
-        }
+        Location { row: 0, col: 0 }
     }
 }
 
@@ -51,7 +48,9 @@ impl Span {
     }
 
     fn get_char_indices_for_line(&self, line: usize, line_length: usize) -> Option<(usize, usize)> {
-        if !self.contains_line(line) { return None; }
+        if !self.contains_line(line) {
+            return None;
+        }
 
         // 4 Cases:
         // Start/End line
@@ -60,9 +59,9 @@ impl Span {
         // End line
 
         if self.start.row == self.end.row {
-           Some((self.start.col, self.end.col))
+            Some((self.start.col, self.end.col))
         } else if self.start.row == line {
-           Some((self.start.col, line_length))
+            Some((self.start.col, line_length))
         } else if self.end.row == line {
             Some((0, self.end.col))
         } else {
@@ -86,7 +85,7 @@ impl Cursor {
             selection_start: None,
         }
     }
-   
+
     fn set_row(&mut self, row: usize) {
         self.location.row = row;
     }
@@ -276,22 +275,32 @@ impl Buffer {
     }
 
     pub fn handle_char_input(&mut self, input: char) {
+        dbg!("input: {:?}", input);
         if input == '\n' || input == '\r' {
             let new_line = self.lines[self.cursor.location.row].split_off(self.cursor.location.col);
             self.cursor.set_row(self.cursor.location.row + 1);
             self.lines.insert(self.cursor.location.row, new_line);
             self.cursor.set_col_with_affinity(0);
-        } else if input == 127 as char {
+        // this is Delete
+        //} else if input == '\u{7f}' {
+        // this is Backspace
+        } else if input == '\u{8}' {
+            dbg!("first");
             if self.cursor.location.col > 0 {
+                dbg!("second");
                 self.lines[self.cursor.location.row].remove(self.cursor.location.col - 1);
-                self.cursor.set_col_with_affinity(self.cursor.location.col - 1);
+                self.cursor
+                    .set_col_with_affinity(self.cursor.location.col - 1);
             } else if self.cursor.location.row > 0 {
+                dbg!("third");
                 let remaining = self.lines.remove(self.cursor.location.row);
                 self.cursor.set_row(self.cursor.location.row - 1);
-                self.cursor.set_col_with_affinity(self.lines[self.cursor.location.row].len());
+                self.cursor
+                    .set_col_with_affinity(self.lines[self.cursor.location.row].len());
                 self.lines[self.cursor.location.row].push_str(&remaining);
             }
         } else {
+            dbg!("four");
             self.lines[self.cursor.location.row].insert(self.cursor.location.col, input);
             self.cursor.set_col(self.cursor.location.col + 1);
         }
@@ -325,9 +334,7 @@ impl Buffer {
                 let row = (self.cursor.location.row as isize - 1)
                     .max(0)
                     .min(self.lines.len() as isize) as usize;
-                let col = self.lines[row]
-                    .len()
-                    .min(self.cursor.col_affinity);
+                let col = self.lines[row].len().min(self.cursor.col_affinity);
                 self.cursor.set_row(row);
                 self.cursor.set_col(col);
             }
@@ -336,9 +343,7 @@ impl Buffer {
                 let row = (self.cursor.location.row as isize + 1)
                     .max(0)
                     .min(self.lines.len() as isize - 1) as usize;
-                let col = self.lines[row]
-                    .len()
-                    .min(self.cursor.col_affinity);
+                let col = self.lines[row].len().min(self.cursor.col_affinity);
                 self.cursor.set_row(row);
                 self.cursor.set_col(col);
             }
@@ -347,10 +352,12 @@ impl Buffer {
                 if self.cursor.location.col == 0 {
                     if self.cursor.location.row > 0 {
                         self.cursor.set_row(self.cursor.location.row - 1);
-                        self.cursor.set_col_with_affinity(self.lines[self.cursor.location.row].len());
+                        self.cursor
+                            .set_col_with_affinity(self.lines[self.cursor.location.row].len());
                     }
                 } else {
-                    self.cursor.set_col_with_affinity(self.cursor.location.col - 1);
+                    self.cursor
+                        .set_col_with_affinity(self.cursor.location.col - 1);
                 }
             }
             VirtualKeyCode::Right => {
@@ -361,7 +368,8 @@ impl Buffer {
                         self.cursor.set_col_with_affinity(0);
                     }
                 } else {
-                    self.cursor.set_col_with_affinity(self.cursor.location.col + 1);
+                    self.cursor
+                        .set_col_with_affinity(self.cursor.location.col + 1);
                 }
             }
             _ => {}
@@ -411,7 +419,9 @@ impl Buffer {
             let mut line_no_color = [0.4, 0.4, 0.4, 1.0];
 
             // Paint selection boxes
-            if let Some((start, end)) = selection_span.and_then(|span| span.get_char_indices_for_line(index, line.len())) {
+            if let Some((start, end)) =
+                selection_span.and_then(|span| span.get_char_indices_for_line(index, line.len()))
+            {
                 // TODO: Gah, we should not do this. We should do a single layout pass and add some
                 // methods that lets us query glyph locations.
                 let layout = glyph_brush.fonts().first().unwrap().layout(

@@ -1,4 +1,4 @@
-// TODO List
+ // TODO List
 // * Do better text layout and more easily track metrics? (helpful for hit-testing)
 // * Text selections
 // * Support mouse up/down/move in editor/buffer
@@ -58,8 +58,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     // TODO: Dynamically load fonts or something?
-    let inconsolata: &[u8] =
-        include_bytes!("/Users/connor/Library/Fonts/InconsolataGo-Regular.ttf");
+    let inconsolata: &[u8] = include_bytes!("/usr/share/fonts/truetype/ubuntu/UbuntuMono-R.ttf");
+    // /Users/connor/Library/Fonts/InconsolataGo-Regular.ttf");
     let mut glyph_brush =
         GlyphBrushBuilder::using_font_bytes(inconsolata).build(&mut device, render_format);
 
