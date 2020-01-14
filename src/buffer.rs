@@ -275,7 +275,6 @@ impl Buffer {
     }
 
     pub fn handle_char_input(&mut self, input: char) {
-        dbg!("input: {:?}", input);
         if input == '\n' || input == '\r' {
             let new_line = self.lines[self.cursor.location.row].split_off(self.cursor.location.col);
             self.cursor.set_row(self.cursor.location.row + 1);
@@ -283,14 +282,11 @@ impl Buffer {
             self.cursor.set_col_with_affinity(0);
         // this is Backspace
         } else if input == '\u{8}' {
-            dbg!("first");
             if self.cursor.location.col > 0 {
-                dbg!("second");
                 self.lines[self.cursor.location.row].remove(self.cursor.location.col - 1);
                 self.cursor
                     .set_col_with_affinity(self.cursor.location.col - 1);
             } else if self.cursor.location.row > 0 {
-                dbg!("third");
                 let remaining = self.lines.remove(self.cursor.location.row);
                 self.cursor.set_row(self.cursor.location.row - 1);
                 self.cursor
@@ -299,8 +295,6 @@ impl Buffer {
             }
         // this is Delete
         } else if input == '\u{7f}' {
-            dbg!("delete first");
-            dbg!("{}", &self.lines[self.cursor.location.row]);
             if self.lines[self.cursor.location.row].len() > self.cursor.location.col {
                 self.lines[self.cursor.location.row].remove(self.cursor.location.col);
             }
@@ -309,7 +303,6 @@ impl Buffer {
             // because now cursor should be moved to right one character when deleting
             // Also, now when there is \t in the file, it will not be displayed correctly
         } else {
-            dbg!("four");
             self.lines[self.cursor.location.row].insert(self.cursor.location.col, input);
             self.cursor.set_col(self.cursor.location.col + 1);
         }
