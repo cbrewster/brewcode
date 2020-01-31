@@ -36,7 +36,7 @@ fn orthographic_projection(width: f64, height: f64) -> [f32; 16] {
 }
 
 impl RectangleBrush {
-    pub fn new(device: &wgpu::Device, format: wgpu::TextureFormat) -> RectangleBrush {
+    pub fn new(device: &wgpu::Device, format: wgpu::TextureFormat) -> Self {
         let vs_bytes = include_bytes!("shaders/rectangle.vert.spv");
         let vs_module = device
             .create_shader_module(&wgpu::read_spirv(std::io::Cursor::new(&vs_bytes[..])).unwrap());
@@ -140,7 +140,7 @@ impl RectangleBrush {
             alpha_to_coverage_enabled: false,
         });
 
-        RectangleBrush {
+        Self {
             pipeline,
             bind_group,
             transform_buffer,

@@ -23,8 +23,8 @@ struct Location {
 }
 
 impl Location {
-    fn new() -> Location {
-        Location { row: 0, col: 0 }
+    fn new() -> Self {
+        Self { row: 0, col: 0 }
     }
 }
 
@@ -36,8 +36,8 @@ struct Span {
 
 impl Span {
     /// Creates a new span and ensures that start <= end.
-    fn new(start: Location, end: Location) -> Span {
-        Span {
+    fn new(start: Location, end: Location) -> Self {
+        Self {
             start: start.min(end),
             end: start.max(end),
         }
@@ -78,8 +78,8 @@ struct Cursor {
 }
 
 impl Cursor {
-    fn new() -> Cursor {
-        Cursor {
+    fn new() -> Self {
+        Self {
             location: Location::new(),
             col_affinity: 0,
             selection_start: None,
@@ -162,7 +162,7 @@ fn generate_highlight_info(
 }
 
 impl Buffer {
-    pub fn new(size: PhysicalSize<u32>, file_name: String) -> Buffer {
+    pub fn new(size: PhysicalSize<u32>, file_name: String) -> Self {
         let path = Path::new(&file_name);
         let file = std::fs::read_to_string(path).expect("Failed to read file.");
         // TODO: Not sure if just splitting '\n' is right here.
@@ -176,7 +176,7 @@ impl Buffer {
         let theme_set = ThemeSet::load_defaults();
         let mut highlight_info = vec![];
         generate_highlight_info(&lines, &mut highlight_info, &syntax_set, &theme_set);
-        Buffer {
+        Self {
             highlight_info,
             scroll: 0.0,
             lines,
