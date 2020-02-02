@@ -13,8 +13,8 @@ pub struct Editor {
 }
 
 impl Editor {
-    pub fn new(size: PhysicalSize<u32>, file_name: String) -> Editor {
-        Editor {
+    pub fn new(size: PhysicalSize<u32>, file_name: String) -> Self {
+        Self {
             buffers: vec![Buffer::new(size, file_name)],
             active_buffer: 0,
             size,
