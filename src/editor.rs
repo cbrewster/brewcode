@@ -1,5 +1,9 @@
-use crate::buffer::Buffer;
-use crate::rectangle_brush::RectangleBrush;
+use crate::{
+    buffer::Buffer,
+    rectangle_brush::RectangleBrush,
+    render::RenderContext,
+    layout::LayoutContext,
+};
 use wgpu_glyph::GlyphBrush;
 use winit::{
     dpi::{PhysicalPosition, PhysicalSize},
@@ -53,13 +57,12 @@ impl Editor {
         self.buffers[self.active_buffer].handle_mouse_move(position);
     }
 
-    pub fn draw(
-        &self,
-        size: PhysicalSize<u32>,
-        glyph_brush: &mut GlyphBrush<()>,
-        rect_brush: &mut RectangleBrush,
-    ) {
-        self.buffers[self.active_buffer].draw(size, glyph_brush, rect_brush);
+    pub fn layout(&mut self, context: &mut LayoutContext) {
+        self.buffers[self.active_buffer].layout(context);
+    }
+
+    pub fn render(&self, context: &mut RenderContext) {
+        self.buffers[self.active_buffer].render(context);
     }
 
     pub fn scroll(&mut self, delta: f32) {

@@ -7,9 +7,13 @@
 mod buffer;
 mod editor;
 mod rectangle_brush;
+mod render;
+mod layout;
 
 use editor::Editor;
 use rectangle_brush::RectangleBrush;
+use render::RenderContext;
+use layout::LayoutContext;
 
 use wgpu_glyph::{GlyphBrushBuilder, Scale, Section};
 use winit::{
@@ -195,7 +199,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 depth_stencil_attachment: None,
             });
 
-            editor.draw(size, &mut glyph_brush, &mut rectangle_brush);
+            let font = glyph_brush.fonts()[0].clone();
+
+            let mut layout_context = LayoutContext {
+                size: (size.width as f32, size.height as f32),
+                font: font.clone(),
+            };
+
+            editor.layout(&mut layout_context);
+
+            let mut render_context = RenderContext {
+                size: (size.width as f32, size.height as f32),
+                glyph_brush: &mut glyph_brush,
+                rectangle_brush: &mut rectangle_brush,
+            };
+
+            editor.render(&mut render_context);
 
             rectangle_brush.draw(
                 &device,
